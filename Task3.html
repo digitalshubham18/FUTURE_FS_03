@@ -1,0 +1,1792 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Starbucks - Coffee & More</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Sora:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <style>
+        :root {
+            --sb-green: #006241;
+            --sb-light-green: #d4e9e2;
+            --sb-gold: #cba258;
+            --sb-cream: #f2f0eb;
+        }
+        
+        body {
+            font-family: 'Poppins', sans-serif;
+            overflow-x: hidden;
+        }
+        
+        .hero-gradient {
+            background: linear-gradient(135deg, var(--sb-green) 0%, #004d34 100%);
+        }
+        
+        .floating-animation {
+            animation: float 6s ease-in-out infinite;
+        }
+        
+        @keyframes float {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-20px); }
+            100% { transform: translateY(0px); }
+        }
+        
+        .card-hover {
+            transition: all 0.3s ease;
+        }
+        
+        .card-hover:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+        
+        .sora-font {
+            font-family: 'Sora', sans-serif;
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .modal-content {
+            background-color: white;
+            border-radius: 12px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+        }
+        
+        .store-card {
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        
+        .store-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        #storeMap {
+            height: 400px;
+            width: 100%;
+            border-radius: 8px;
+        }
+        
+        .world-map-container {
+            height: 500px;
+            width: 100%;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        
+        .rating-stars {
+            color: #cba258;
+        }
+        
+        .store-details-modal {
+            max-width: 800px;
+        }
+        
+        .form-group {
+            margin-bottom: 1rem;
+        }
+        
+        .form-label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            color: #006241;
+        }
+        
+        .form-input {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #d1d5db;
+            border-radius: 0.5rem;
+            transition: border-color 0.3s;
+        }
+        
+        .form-input:focus {
+            outline: none;
+            border-color: #006241;
+            box-shadow: 0 0 0 3px rgba(0, 98, 65, 0.1);
+        }
+        
+        .form-checkbox {
+            margin-right: 0.5rem;
+        }
+        
+        .tabs {
+            display: flex;
+            border-bottom: 1px solid #e5e7eb;
+            margin-bottom: 1.5rem;
+        }
+        
+        .tab {
+            padding: 0.75rem 1.5rem;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            transition: all 0.3s;
+        }
+        
+        .tab.active {
+            border-bottom-color: #006241;
+            color: #006241;
+            font-weight: 600;
+        }
+        
+        .tab:hover {
+            color: #006241;
+        }
+        
+        .menu-category {
+            display: none;
+        }
+        
+        .menu-category.active {
+            display: block;
+        }
+        
+        .menu-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 1.5rem;
+        }
+        
+        .menu-item {
+            border: 1px solid #e5e7eb;
+            border-radius: 0.75rem;
+            overflow: hidden;
+            transition: all 0.3s;
+        }
+        
+        .menu-item:hover {
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+        
+        .menu-item-image {
+            height: 160px;
+            background-color: #f3f4f6;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .menu-item-content {
+            padding: 1rem;
+        }
+        
+        .menu-item-title {
+            font-weight: 600;
+            color: #006241;
+            margin-bottom: 0.5rem;
+        }
+        
+        .menu-item-description {
+            color: #6b7280;
+            font-size: 0.875rem;
+            margin-bottom: 1rem;
+        }
+        
+        .menu-item-price {
+            font-weight: 600;
+            color: #cba258;
+            margin-bottom: 1rem;
+        }
+    </style>
+</head>
+<body class="bg-white">
+    <nav class="bg-white shadow-md sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-20">
+                <div class="flex items-center">
+                    <div class="flex items-center">
+                        <div class="w-10 h-10 rounded-full bg-gradient-to-r from-[#006241] to-[#cba258] flex items-center justify-center mr-2">
+                            <i class="fas fa-mug-hot text-white text-lg"></i>
+                        </div>
+                        <span class="sora-font text-2xl font-bold text-[#006241]">Starbucks<span class="text-[#cba258]">.</span></span>
+                    </div>
+                    
+                    <div class="hidden md:ml-10 md:flex md:space-x-8">
+                        <a href="#" class="text-[#006241] hover:text-[#cba258] px-3 py-2 text-sm font-medium transition-colors" onclick="openMenuModal()">Menu</a>
+                        <a href="#" class="text-[#006241] hover:text-[#cba258] px-3 py-2 text-sm font-medium transition-colors" onclick="openRewardsModal()">Rewards</a>
+                        <a href="#" class="text-[#006241] hover:text-[#cba258] px-3 py-2 text-sm font-medium transition-colors" onclick="openGiftCardsModal()">Gift Cards</a>
+                        <a href="#" class="text-[#006241] hover:text-[#cba258] px-3 py-2 text-sm font-medium transition-colors" onclick="openFindStoreModal()">Find a Store</a>
+                    </div>
+                </div>
+                
+                <div class="flex items-center space-x-4">
+                    <a href="#" class="text-[#006241] hover:text-[#cba258] px-3 py-2 text-sm font-medium transition-colors hidden md:block" onclick="openFindStoreModal()">
+                        <i class="fas fa-map-marker-alt mr-1"></i> Find a Store
+                    </a>
+                    <button id="signInBtn" class="border border-[#006241] text-[#006241] hover:bg-[#006241] hover:text-white px-4 py-2 rounded-full text-sm font-medium transition-colors" onclick="openSignInModal()">
+                        Sign in
+                    </button>
+                    <button class="bg-[#006241] text-white hover:bg-[#004d34] px-4 py-2 rounded-full text-sm font-medium transition-colors" onclick="openJoinNowModal()">
+                        Join now
+                    </button>
+                    <button class="md:hidden text-[#006241]" onclick="toggleMobileMenu()">
+                        <i class="fas fa-bars text-xl"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <div id="mobileMenu" class="md:hidden bg-white border-t border-gray-200 hidden">
+            <div class="px-2 pt-2 pb-3 space-y-1">
+                <a href="#" class="block text-[#006241] hover:text-[#cba258] px-3 py-2 text-base font-medium" onclick="openMenuModal()">Menu</a>
+                <a href="#" class="block text-[#006241] hover:text-[#cba258] px-3 py-2 text-base font-medium" onclick="openRewardsModal()">Rewards</a>
+                <a href="#" class="block text-[#006241] hover:text-[#cba258] px-3 py-2 text-base font-medium" onclick="openGiftCardsModal()">Gift Cards</a>
+                <a href="#" class="block text-[#006241] hover:text-[#cba258] px-3 py-2 text-base font-medium" onclick="openFindStoreModal()">Find a Store</a>
+            </div>
+        </div>
+    </nav>
+
+    <section class="hero-gradient text-white">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 md:py-24">
+            <div class="flex flex-col md:flex-row items-center">
+                <div class="md:w-1/2 mb-10 md:mb-0">
+                    <h1 class="sora-font text-4xl md:text-5xl lg:text-6xl font-bold mb-6">Sip. Smile. <span class="text-[#cba258]">Repeat.</span></h1>
+                    <p class="text-xl mb-8 max-w-lg">Experience coffee reimagined with our AI-curated flavors and personalized recommendations just for you.</p>
+                    <div class="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4">
+                        <button class="bg-white text-[#006241] hover:bg-[#d4e9e2] px-6 py-3 rounded-full font-medium transition-colors" onclick="openOrderNowModal()">
+                            Order Now
+                        </button>
+                        <button class="border border-white text-white hover:bg-white hover:text-[#006241] px-6 py-3 rounded-full font-medium transition-colors" onclick="openJoinNowModal()">
+                            Join Starbucks® Rewards
+                        </button>
+                    </div>
+                </div>
+                <div class="md:w-1/2 flex justify-center">
+                    <div class="relative w-80 h-80">
+                        <div class="absolute w-full h-full bg-gradient-to-br from-[#cba258] to-[#8b6b3d] rounded-full floating-animation"></div>
+                        <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-white rounded-full flex items-center justify-center">
+                            <div class="w-48 h-48 bg-gradient-to-b from-[#8b4513] to-[#5d2f0f] rounded-full relative overflow-hidden">
+                                <div class="absolute top-0 left-0 w-full h-8 bg-[#cba258]"></div>
+                                <div class="absolute bottom-0 left-0 w-full h-4 bg-[#8b6b3d]"></div>
+                                <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-32 h-32 bg-[#5d2f0f] rounded-full"></div>
+                            </div>
+                        </div>
+                        <div class="absolute -bottom-4 -right-4 w-24 h-24 bg-[#006241] rounded-full flex items-center justify-center">
+                            <i class="fas fa-star text-white text-2xl"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="bg-[#f2f0eb] py-16">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-12">
+                <h2 class="sora-font text-3xl md:text-4xl font-bold text-[#006241] mb-4">Your Personalized Coffee Journey</h2>
+                <p class="text-gray-600 max-w-2xl mx-auto">Our AI analyzes your preferences to craft the perfect drink recommendations just for you.</p>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div class="bg-white rounded-2xl overflow-hidden shadow-lg card-hover">
+                    <div class="h-48 bg-gradient-to-r from-[#006241] to-[#008055] flex items-center justify-center">
+                        <div class="w-32 h-32 bg-white rounded-full flex items-center justify-center">
+                            <i class="fas fa-mug-hot text-[#006241] text-4xl"></i>
+                        </div>
+                    </div>
+                    <div class="p-6">
+                        <h3 class="sora-font text-xl font-bold text-[#006241] mb-2">Caramel Macchiato</h3>
+                        <p class="text-gray-600 mb-4">Based on your love for sweet espresso drinks</p>
+                        <div class="flex justify-between items-center">
+                            <span class="text-[#cba258] font-bold">$4.95</span>
+                            <button class="bg-[#006241] text-white px-4 py-2 rounded-full text-sm font-medium hover:bg-[#004d34] transition-colors" onclick="buyNow('Caramel Macchiato', 4.95)">
+                                Buy Now
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="bg-white rounded-2xl overflow-hidden shadow-lg card-hover">
+                    <div class="h-48 bg-gradient-to-r from-[#cba258] to-[#e0c78a] flex items-center justify-center">
+                        <div class="w-32 h-32 bg-white rounded-full flex items-center justify-center">
+                            <i class="fas fa-leaf text-[#cba258] text-4xl"></i>
+                        </div>
+                    </div>
+                    <div class="p-6">
+                        <h3 class="sora-font text-xl font-bold text-[#006241] mb-2">Matcha Green Tea</h3>
+                        <p class="text-gray-600 mb-4">Perfect for your afternoon refreshment</p>
+                        <div class="flex justify-between items-center">
+                            <span class="text-[#cba258] font-bold">$5.25</span>
+                            <button class="bg-[#006241] text-white px-4 py-2 rounded-full text-sm font-medium hover:bg-[#004d34] transition-colors" onclick="buyNow('Matcha Green Tea', 5.25)">
+                                Buy Now
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="bg-white rounded-2xl overflow-hidden shadow-lg card-hover">
+                    <div class="h-48 bg-gradient-to-r from-[#8b4513] to-[#a05a2c] flex items-center justify-center">
+                        <div class="w-32 h-32 bg-white rounded-full flex items-center justify-center">
+                            <i class="fas fa-fire text-[#8b4513] text-4xl"></i>
+                        </div>
+                    </div>
+                    <div class="p-6">
+                        <h3 class="sora-font text-xl font-bold text-[#006241] mb-2">Caffè Mocha</h3>
+                        <p class="text-gray-600 mb-4">Rich chocolate meets bold espresso</p>
+                        <div class="flex justify-between items-center">
+                            <span class="text-[#cba258] font-bold">$5.45</span>
+                            <button class="bg-[#006241] text-white px-4 py-2 rounded-full text-sm font-medium hover:bg-[#004d34] transition-colors" onclick="buyNow('Caffè Mocha', 5.45)">
+                                Buy Now
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="py-16 bg-white">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex flex-col md:flex-row items-center">
+                <div class="md:w-1/2 mb-10 md:mb-0">
+                    <h2 class="sora-font text-3xl md:text-4xl font-bold text-[#006241] mb-6">AI Flavor Generator</h2>
+                    <p class="text-gray-600 mb-6">Create your perfect drink with our AI-powered flavor combination tool. Select your preferences and let our algorithm craft a unique beverage just for you.</p>
+                    
+                    <div class="bg-[#f2f0eb] p-6 rounded-2xl">
+                        <div class="mb-4">
+                            <label class="block text-[#006241] font-medium mb-2">Base Drink</label>
+                            <div class="flex space-x-2">
+                                <button id="coffeeBtn" class="bg-[#006241] text-white px-4 py-2 rounded-full text-sm transition-colors" onclick="selectBaseDrink('coffee')">Coffee</button>
+                                <button id="teaBtn" class="bg-white border border-[#006241] text-[#006241] px-4 py-2 rounded-full text-sm hover:bg-[#006241] hover:text-white transition-colors" onclick="selectBaseDrink('tea')">Tea</button>
+                                <button id="frappeBtn" class="bg-white border border-[#006241] text-[#006241] px-4 py-2 rounded-full text-sm hover:bg-[#006241] hover:text-white transition-colors" onclick="selectBaseDrink('frappe')">Frappuccino</button>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label class="block text-[#006241] font-medium mb-2">Flavor Profile</label>
+                            <div class="flex space-x-2 flex-wrap gap-2">
+                                <button id="sweetBtn" class="bg-[#006241] text-white px-4 py-2 rounded-full text-sm transition-colors" onclick="selectFlavor('sweet')">Sweet</button>
+                                <button id="boldBtn" class="bg-white border border-[#006241] text-[#006241] px-4 py-2 rounded-full text-sm hover:bg-[#006241] hover:text-white transition-colors" onclick="selectFlavor('bold')">Bold</button>
+                                <button id="creamyBtn" class="bg-white border border-[#006241] text-[#006241] px-4 py-2 rounded-full text-sm hover:bg-[#006241] hover:text-white transition-colors" onclick="selectFlavor('creamy')">Creamy</button>
+                                <button id="refreshingBtn" class="bg-white border border-[#006241] text-[#006241] px-4 py-2 rounded-full text-sm hover:bg-[#006241] hover:text-white transition-colors" onclick="selectFlavor('refreshing')">Refreshing</button>
+                            </div>
+                        </div>
+                        
+                        <button class="w-full bg-[#006241] text-white py-3 rounded-full font-medium hover:bg-[#004d34] transition-colors flex items-center justify-center" onclick="generateDrink()">
+                            <i class="fas fa-magic mr-2"></i> Generate My Drink
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="md:w-1/2 flex justify-center">
+                    <div class="relative">
+                        <div id="aiDrinkDisplay" class="w-80 h-80 bg-gradient-to-br from-[#006241] to-[#cba258] rounded-full flex items-center justify-center floating-animation">
+                            <div class="w-64 h-64 bg-white rounded-full flex items-center justify-center">
+                                <div class="text-center">
+                                    <i class="fas fa-mug-hot text-6xl text-[#006241] mb-4"></i>
+                                    <h3 class="sora-font text-xl font-bold text-[#006241]">Your AI Creation</h3>
+                                    <p class="text-gray-600">Generate to see your drink</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="absolute -top-4 -right-4 w-16 h-16 bg-[#cba258] rounded-full flex items-center justify-center">
+                            <i class="fas fa-robot text-white text-xl"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="bg-[#d4e9e2] py-16">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex flex-col md:flex-row items-center">
+                <div class="md:w-1/2 mb-10 md:mb-0 flex justify-center">
+                    <div class="relative">
+                        <div class="w-80 h-80 bg-gradient-to-br from-[#006241] to-[#008055] rounded-3xl flex items-center justify-center shadow-2xl">
+                            <div class="text-center text-white p-8">
+                                <div class="w-20 h-20 bg-white rounded-full flex items-center justify-center mx-auto mb-6">
+                                    <i class="fas fa-crown text-[#cba258] text-3xl"></i>
+                                </div>
+                                <h3 class="sora-font text-2xl font-bold mb-2">Starbucks® Rewards</h3>
+                                <p class="mb-4">Join now to start earning Stars</p>
+                                <div class="flex justify-center space-x-2">
+                                    <div class="w-8 h-8 bg-[#cba258] rounded-full flex items-center justify-center">
+                                        <i class="fas fa-star text-white text-sm"></i>
+                                    </div>
+                                    <div class="w-8 h-8 bg-[#cba258] rounded-full flex items-center justify-center">
+                                        <i class="fas fa-star text-white text-sm"></i>
+                                    </div>
+                                    <div class="w-8 h-8 bg-[#cba258] rounded-full flex items-center justify-center">
+                                        <i class="fas fa-star text-white text-sm"></i>
+                                    </div>
+                                    <div class="w-8 h-8 bg-[#cba258] rounded-full flex items-center justify-center">
+                                        <i class="fas fa-star text-white text-sm"></i>
+                                    </div>
+                                    <div class="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center">
+                                        <i class="fas fa-star text-white text-sm"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="absolute -bottom-6 -left-6 w-24 h-24 bg-[#cba258] rounded-full flex items-center justify-center">
+                            <i class="fas fa-gift text-white text-2xl"></i>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="md:w-1/2 md:pl-12">
+                    <h2 class="sora-font text-3xl md:text-4xl font-bold text-[#006241] mb-6">More Ways to Pay, More Ways to Get Rewarded</h2>
+                    <p class="text-gray-700 mb-6">Join Starbucks® Rewards and link your payment methods to earn Stars for free food and drinks, get mobile ordering, and enjoy exclusive offers.</p>
+                    
+                    <div class="space-y-4 mb-8">
+                        <div class="flex items-start">
+                            <div class="w-8 h-8 bg-[#006241] rounded-full flex items-center justify-center mr-4 mt-1">
+                                <i class="fas fa-mobile-alt text-white text-sm"></i>
+                            </div>
+                            <div>
+                                <h4 class="sora-font font-bold text-[#006241]">Order and pay how you'd like</h4>
+                                <p class="text-gray-700">Use cash, credit/debit card or save some time and pay right through the app.</p>
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-start">
+                            <div class="w-8 h-8 bg-[#006241] rounded-full flex items-center justify-center mr-4 mt-1">
+                                <i class="fas fa-star text-white text-sm"></i>
+                            </div>
+                            <div>
+                                <h4 class="sora-font font-bold text-[#006241]">Earn Stars, get rewards</h4>
+                                <p class="text-gray-700">As you earn Stars, you can redeem them for Rewards—like free food, drinks, and more.</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <button class="bg-[#006241] text-white px-6 py-3 rounded-full font-medium hover:bg-[#004d34] transition-colors" onclick="openJoinNowModal()">
+                        Join Now
+                    </button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="py-16 bg-white">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <h2 class="sora-font text-3xl md:text-4xl font-bold text-[#006241] mb-6">Join Starbucks Rewards Today</h2>
+            <p class="text-gray-600 max-w-2xl mx-auto mb-8">Start earning Stars and enjoying exclusive benefits right away. Download our app to get started.</p>
+            <button class="bg-[#006241] text-white px-8 py-3 rounded-full font-medium hover:bg-[#004d34] transition-colors" onclick="openJoinNowModal()">
+                Join Now
+            </button>
+        </div>
+    </section>
+
+    <footer class="bg-[#1e3932] text-white py-12">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+                <div>
+                    <h3 class="sora-font text-lg font-bold mb-4">About Us</h3>
+                    <ul class="space-y-2">
+                        <li><a href="#" class="text-gray-300 hover:text-white transition-colors" onclick="showContentModal('Our Company', 'Starbucks was founded in 1971 in Seattle. We are committed to ethically sourcing and roasting the highest quality arabica coffee.')">Our Company</a></li>
+                        <li><a href="#" class="text-gray-300 hover:text-white transition-colors" onclick="showContentModal('Our Coffee', 'We ethically source and roast high-quality arabica coffee. Our coffee masters have a passion for crafting the perfect cup.')">Our Coffee</a></li>
+                        <li><a href="#" class="text-gray-300 hover:text-white transition-colors" onclick="showContentModal('Stories and News', 'Stay updated with the latest Starbucks stories, news, and announcements from around the world.')">Stories and News</a></li>
+                        <li><a href="#" class="text-gray-300 hover:text-white transition-colors" onclick="showContentModal('Starbucks Archive', 'Explore our history, past products, and the journey of Starbucks over the years.')">Starbucks Archive</a></li>
+                        <li><a href="#" class="text-gray-300 hover:text-white transition-colors" onclick="showContentModal('Investor Relations', 'Information for investors about Starbucks financial performance and corporate governance.')">Investor Relations</a></li>
+                    </ul>
+                </div>
+                
+                <div>
+                    <h3 class="sora-font text-lg font-bold mb-4">Careers</h3>
+                    <ul class="space-y-2">
+                        <li><a href="#" class="text-gray-300 hover:text-white transition-colors" onclick="showContentModal('Culture and Values', 'Our culture is rooted in our mission and values, creating a welcoming environment for both partners and customers.')">Culture and Values</a></li>
+                        <li><a href="#" class="text-gray-300 hover:text-white transition-colors" onclick="showContentModal('Inclusion, Diversity, and Equity', 'We are committed to creating a culture of warmth and belonging where everyone is welcome.')">Inclusion, Diversity, and Equity</a></li>
+                        <li><a href="#" class="text-gray-300 hover:text-white transition-colors" onclick="showContentModal('College Achievement Plan', 'Starbucks offers full tuition coverage for eligible partners through the Starbucks College Achievement Plan.')">College Achievement Plan</a></li>
+                        <li><a href="#" class="text-gray-300 hover:text-white transition-colors" onclick="showContentModal('Alumni Community', 'Join our alumni community to stay connected with former partners and explore opportunities.')">Alumni Community</a></li>
+                        <li><a href="#" class="text-gray-300 hover:text-white transition-colors" onclick="showContentModal('U.S. Careers', 'Explore career opportunities at Starbucks stores, roasting plants, and support centers across the U.S.')">U.S. Careers</a></li>
+                    </ul>
+                </div>
+                
+                <div>
+                    <h3 class="sora-font text-lg font-bold mb-4">Social Impact</h3>
+                    <ul class="space-y-2">
+                        <li><a href="#" class="text-gray-300 hover:text-white transition-colors" onclick="showContentModal('People', 'We are committed to the well-being of our partners (employees) and the communities we serve.')">People</a></li>
+                        <li><a href="#" class="text-gray-300 hover:text-white transition-colors" onclick="showContentModal('Planet', 'We are working to reduce our environmental impact through sustainable practices and innovations.')">Planet</a></li>
+                        <li><a href="#" class="text-gray-300 hover:text-white transition-colors" onclick="showContentModal('Environmental and Social Impact Reporting', 'Access our annual Global Environmental and Social Impact Report to learn about our progress.')">Environmental and Social Impact Reporting</a></li>
+                    </ul>
+                </div>
+                
+                <div>
+                    <h3 class="sora-font text-lg font-bold mb-4">Order and Pickup</h3>
+                    <ul class="space-y-2">
+                        <li><a href="#" class="text-gray-300 hover:text-white transition-colors" onclick="showContentModal('Order on the App', 'Download the Starbucks app to order ahead, pay, and earn Stars for rewards.')">Order on the App</a></li>
+                        <li><a href="#" class="text-gray-300 hover:text-white transition-colors" onclick="showContentModal('Order on the Web', 'Order your favorites online for pickup at your local Starbucks store.')">Order on the Web</a></li>
+                        <li><a href="#" class="text-gray-300 hover:text-white transition-colors" onclick="showContentModal('Delivery', 'Get Starbucks delivered right to your door through our delivery partners.')">Delivery</a></li>
+                        <li><a href="#" class="text-gray-300 hover:text-white transition-colors" onclick="showContentModal('Order and Pickup Options', 'Choose from various ordering options including drive-thru, mobile order, and in-store pickup.')">Order and Pickup Options</a></li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="border-t border-gray-700 mt-12 pt-8 flex flex-col md:flex-row justify-between items-center">
+                <div class="flex items-center mb-4 md:mb-0">
+                    <div class="w-8 h-8 rounded-full bg-gradient-to-r from-[#006241] to-[#cba258] flex items-center justify-center mr-2">
+                        <i class="fas fa-mug-hot text-white text-sm"></i>
+                    </div>
+                    <span class="sora-font text-xl font-bold">Starbucks</span>
+                </div>
+                
+                <div class="flex space-x-6 mb-4 md:mb-0">
+                    <a href="#" class="text-gray-300 hover:text-white transition-colors">
+                        <i class="fab fa-spotify text-xl"></i>
+                    </a>
+                    <a href="#" class="text-gray-300 hover:text-white transition-colors">
+                        <i class="fab fa-facebook text-xl"></i>
+                    </a>
+                    <a href="#" class="text-gray-300 hover:text-white transition-colors">
+                        <i class="fab fa-pinterest text-xl"></i>
+                    </a>
+                    <a href="#" class="text-gray-300 hover:text-white transition-colors">
+                        <i class="fab fa-instagram text-xl"></i>
+                    </a>
+                    <a href="#" class="text-gray-300 hover:text-white transition-colors">
+                        <i class="fab fa-youtube text-xl"></i>
+                    </a>
+                    <a href="#" class="text-gray-300 hover:text-white transition-colors">
+                        <i class="fab fa-twitter text-xl"></i>
+                    </a>
+                </div>
+                
+                <div class="text-gray-300 text-sm">
+                    &copy; 2023 Starbucks Coffee Company. All rights reserved.
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Menu Modal -->
+    <div id="menuModal" class="modal">
+        <div class="modal-content">
+            <div class="p-6">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="sora-font text-2xl font-bold text-[#006241]">Our Menu</h2>
+                    <button class="text-gray-500 hover:text-gray-700" onclick="closeModal('menuModal')">
+                        <i class="fas fa-times text-xl"></i>
+                    </button>
+                </div>
+                
+                <div class="tabs">
+                    <div class="tab active" onclick="changeMenuTab('drinks')">Drinks</div>
+                    <div class="tab" onclick="changeMenuTab('food')">Food</div>
+                    <div class="tab" onclick="changeMenuTab('home')">At Home</div>
+                    <div class="tab" onclick="changeMenuTab('merchandise')">Merchandise</div>
+                </div>
+                
+                <div id="drinks" class="menu-category active">
+                    <div class="menu-grid">
+                        <div class="menu-item">
+                            <div class="menu-item-image">
+                                <i class="fas fa-mug-hot text-4xl text-[#006241]"></i>
+                            </div>
+                            <div class="menu-item-content">
+                                <h3 class="menu-item-title">Caramel Macchiato</h3>
+                                <p class="menu-item-description">Freshly steamed milk with vanilla-flavored syrup, espresso and caramel drizzle</p>
+                                <p class="menu-item-price">$4.95</p>
+                                <button class="w-full bg-[#006241] text-white py-2 rounded-full text-sm hover:bg-[#004d34] transition-colors" onclick="buyNow('Caramel Macchiato', 4.95)">
+                                    Add to Order
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="menu-item">
+                            <div class="menu-item-image">
+                                <i class="fas fa-leaf text-4xl text-[#006241]"></i>
+                            </div>
+                            <div class="menu-item-content">
+                                <h3 class="menu-item-title">Matcha Green Tea Latte</h3>
+                                <p class="menu-item-description">Smooth and creamy matcha sweetened just right and served with steamed milk</p>
+                                <p class="menu-item-price">$5.25</p>
+                                <button class="w-full bg-[#006241] text-white py-2 rounded-full text-sm hover:bg-[#004d34] transition-colors" onclick="buyNow('Matcha Green Tea Latte', 5.25)">
+                                    Add to Order
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="menu-item">
+                            <div class="menu-item-image">
+                                <i class="fas fa-fire text-4xl text-[#006241]"></i>
+                            </div>
+                            <div class="menu-item-content">
+                                <h3 class="menu-item-title">Caffè Mocha</h3>
+                                <p class="menu-item-description">Espresso with bittersweet mocha sauce and steamed milk, topped with sweetened whipped cream</p>
+                                <p class="menu-item-price">$5.45</p>
+                                <button class="w-full bg-[#006241] text-white py-2 rounded-full text-sm hover:bg-[#004d34] transition-colors" onclick="buyNow('Caffè Mocha', 5.45)">
+                                    Add to Order
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="menu-item">
+                            <div class="menu-item-image">
+                                <i class="fas fa-snowflake text-4xl text-[#006241]"></i>
+                            </div>
+                            <div class="menu-item-content">
+                                <h3 class="menu-item-title">Vanilla Sweet Cream Cold Brew</h3>
+                                <p class="menu-item-description">Starbucks Cold Brew sweetened with vanilla and topped with a delicate float of house-made vanilla sweet cream</p>
+                                <p class="menu-item-price">$4.95</p>
+                                <button class="w-full bg-[#006241] text-white py-2 rounded-full text-sm hover:bg-[#004d34] transition-colors" onclick="buyNow('Vanilla Sweet Cream Cold Brew', 4.95)">
+                                    Add to Order
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="food" class="menu-category">
+                    <div class="menu-grid">
+                        <div class="menu-item">
+                            <div class="menu-item-image">
+                                <i class="fas fa-bread-slice text-4xl text-[#006241]"></i>
+                            </div>
+                            <div class="menu-item-content">
+                                <h3 class="menu-item-title">Bacon, Gouda & Egg Sandwich</h3>
+                                <p class="menu-item-description">Applewood-smoked bacon, aged Gouda, and a fried egg on a artisan roll</p>
+                                <p class="menu-item-price">$5.25</p>
+                                <button class="w-full bg-[#006241] text-white py-2 rounded-full text-sm hover:bg-[#004d34] transition-colors" onclick="buyNow('Bacon, Gouda & Egg Sandwich', 5.25)">
+                                    Add to Order
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="menu-item">
+                            <div class="menu-item-image">
+                                <i class="fas fa-cookie text-4xl text-[#006241]"></i>
+                            </div>
+                            <div class="menu-item-content">
+                                <h3 class="menu-item-title">Chocolate Chip Cookie</h3>
+                                <p class="menu-item-description">Classic chocolate chip cookie loaded with semi-sweet chocolate chips</p>
+                                <p class="menu-item-price">$2.45</p>
+                                <button class="w-full bg-[#006241] text-white py-2 rounded-full text-sm hover:bg-[#004d34] transition-colors" onclick="buyNow('Chocolate Chip Cookie', 2.45)">
+                                    Add to Order
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="menu-item">
+                            <div class="menu-item-image">
+                                <i class="fas fa-cheese text-4xl text-[#006241]"></i>
+                            </div>
+                            <div class="menu-item-content">
+                                <h3 class="menu-item-title">Spinach, Feta & Egg White Wrap</h3>
+                                <p class="menu-item-description">Cage-free egg whites, spinach, feta cheese, and sun-dried tomato cream cheese</p>
+                                <p class="menu-item-price">$4.75</p>
+                                <button class="w-full bg-[#006241] text-white py-2 rounded-full text-sm hover:bg-[#004d34] transition-colors" onclick="buyNow('Spinach, Feta & Egg White Wrap', 4.75)">
+                                    Add to Order
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="menu-item">
+                            <div class="menu-item-image">
+                                <i class="fas fa-drumstick-bite text-4xl text-[#006241]"></i>
+                            </div>
+                            <div class="menu-item-content">
+                                <h3 class="menu-item-title">Chicken & Bacon Panini</h3>
+                                <p class="menu-item-description">Grilled chicken, bacon, and Monterey Jack cheese with pesto on artisan bread</p>
+                                <p class="menu-item-price">$6.95</p>
+                                <button class="w-full bg-[#006241] text-white py-2 rounded-full text-sm hover:bg-[#004d34] transition-colors" onclick="buyNow('Chicken & Bacon Panini', 6.95)">
+                                    Add to Order
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="home" class="menu-category">
+                    <div class="menu-grid">
+                        <div class="menu-item">
+                            <div class="menu-item-image">
+                                <i class="fas fa-coffee text-4xl text-[#006241]"></i>
+                            </div>
+                            <div class="menu-item-content">
+                                <h3 class="menu-item-title">Starbucks® House Blend</h3>
+                                <p class="menu-item-description">Medium roast with notes of nut and cocoa. Our signature everyday coffee</p>
+                                <p class="menu-item-price">$12.95</p>
+                                <button class="w-full bg-[#006241] text-white py-2 rounded-full text-sm hover:bg-[#004d34] transition-colors" onclick="buyNow('Starbucks House Blend', 12.95)">
+                                    Add to Order
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="menu-item">
+                            <div class="menu-item-image">
+                                <i class="fas fa-mug-hot text-4xl text-[#006241]"></i>
+                            </div>
+                            <div class="menu-item-content">
+                                <h3 class="menu-item-title">Veranda Blend®</h3>
+                                <p class="menu-item-description">Light roast with hints of soft cocoa and lightly toasted nuts</p>
+                                <p class="menu-item-price">$12.95</p>
+                                <button class="w-full bg-[#006241] text-white py-2 rounded-full text-sm hover:bg-[#004d34] transition-colors" onclick="buyNow('Veranda Blend', 12.95)">
+                                    Add to Order
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="menu-item">
+                            <div class="menu-item-image">
+                                <i class="fas fa-coffee text-4xl text-[#006241]"></i>
+                            </div>
+                            <div class="menu-item-content">
+                                <h3 class="menu-item-title">Pike Place® Roast</h3>
+                                <p class="menu-item-description">Medium roast with smooth, balanced flavor and rich aromas</p>
+                                <p class="menu-item-price">$12.95</p>
+                                <button class="w-full bg-[#006241] text-white py-2 rounded-full text-sm hover:bg-[#004d34] transition-colors" onclick="buyNow('Pike Place Roast', 12.95)">
+                                    Add to Order
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="menu-item">
+                            <div class="menu-item-image">
+                                <i class="fas fa-mug-hot text-4xl text-[#006241]"></i>
+                            </div>
+                            <div class="menu-item-content">
+                                <h3 class="menu-item-title">Caffè Verona®</h3>
+                                <p class="menu-item-description">Dark roast with notes of dark cocoa and caramelized sugar</p>
+                                <p class="menu-item-price">$12.95</p>
+                                <button class="w-full bg-[#006241] text-white py-2 rounded-full text-sm hover:bg-[#004d34] transition-colors" onclick="buyNow('Caffè Verona', 12.95)">
+                                    Add to Order
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="merchandise" class="menu-category">
+                    <div class="menu-grid">
+                        <div class="menu-item">
+                            <div class="menu-item-image">
+                                <i class="fas fa-mug-hot text-4xl text-[#006241]"></i>
+                            </div>
+                            <div class="menu-item-content">
+                                <h3 class="menu-item-title">Starbucks Ceramic Mug</h3>
+                                <p class="menu-item-description">Classic white ceramic mug with green Starbucks Siren logo</p>
+                                <p class="menu-item-price">$14.95</p>
+                                <button class="w-full bg-[#006241] text-white py-2 rounded-full text-sm hover:bg-[#004d34] transition-colors" onclick="buyNow('Starbucks Ceramic Mug', 14.95)">
+                                    Add to Order
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="menu-item">
+                            <div class="menu-item-image">
+                                <i class="fas fa-tshirt text-4xl text-[#006241]"></i>
+                            </div>
+                            <div class="menu-item-content">
+                                <h3 class="menu-item-title">Starbucks Logo T-Shirt</h3>
+                                <p class="menu-item-description">Comfortable cotton t-shirt with the iconic Starbucks logo</p>
+                                <p class="menu-item-price">$24.95</p>
+                                <button class="w-full bg-[#006241] text-white py-2 rounded-full text-sm hover:bg-[#004d34] transition-colors" onclick="buyNow('Starbucks Logo T-Shirt', 24.95)">
+                                    Add to Order
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="menu-item">
+                            <div class="menu-item-image">
+                                <i class="fas fa-tumbler text-4xl text-[#006241]"></i>
+                            </div>
+                            <div class="menu-item-content">
+                                <h3 class="menu-item-title">Starbucks Cold Cup</h3>
+                                <p class="menu-item-description">Reusable 24oz cold cup with straw and green Starbucks logo</p>
+                                <p class="menu-item-price">$19.95</p>
+                                <button class="w-full bg-[#006241] text-white py-2 rounded-full text-sm hover:bg-[#004d34] transition-colors" onclick="buyNow('Starbucks Cold Cup', 19.95)">
+                                    Add to Order
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="menu-item">
+                            <div class="menu-item-image">
+                                <i class="fas fa-gift text-4xl text-[#006241]"></i>
+                            </div>
+                            <div class="menu-item-content">
+                                <h3 class="menu-item-title">Starbucks Gift Set</h3>
+                                <p class="menu-item-description">Coffee sampler with mug and gift card in beautiful packaging</p>
+                                <p class="menu-item-price">$34.95</p>
+                                <button class="w-full bg-[#006241] text-white py-2 rounded-full text-sm hover:bg-[#004d34] transition-colors" onclick="buyNow('Starbucks Gift Set', 34.95)">
+                                    Add to Order
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sign In Modal -->
+    <div id="signInModal" class="modal">
+        <div class="modal-content">
+            <div class="p-6">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="sora-font text-2xl font-bold text-[#006241]">Sign In</h2>
+                    <button class="text-gray-500 hover:text-gray-700" onclick="closeModal('signInModal')">
+                        <i class="fas fa-times text-xl"></i>
+                    </button>
+                </div>
+                
+                <form id="signInForm">
+                    <div class="form-group">
+                        <label class="form-label">Username or Email</label>
+                        <input type="text" class="form-input" placeholder="Enter your username or email" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Password</label>
+                        <input type="password" class="form-input" placeholder="Enter your password" required>
+                    </div>
+                    
+                    <div class="form-group flex items-center">
+                        <input type="checkbox" id="rememberMe" class="form-checkbox">
+                        <label for="rememberMe" class="text-gray-700">Remember me</label>
+                    </div>
+                    
+                    <button type="submit" class="w-full bg-[#006241] text-white py-3 rounded-full font-medium hover:bg-[#004d34] transition-colors">
+                        Sign In
+                    </button>
+                </form>
+                
+                <div class="mt-4 text-center">
+                    <a href="#" class="text-[#006241] hover:underline">Forgot your password?</a>
+                </div>
+                
+                <div class="mt-6 text-center border-t pt-4">
+                    <p class="text-gray-600">Don't have an account?</p>
+                    <button class="mt-2 border border-[#006241] text-[#006241] hover:bg-[#006241] hover:text-white px-4 py-2 rounded-full text-sm font-medium transition-colors" onclick="closeModal('signInModal'); openJoinNowModal();">
+                        Join Now
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Join Now Modal -->
+    <div id="joinNowModal" class="modal">
+        <div class="modal-content">
+            <div class="p-6">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="sora-font text-2xl font-bold text-[#006241]">Join Starbucks Rewards</h2>
+                    <button class="text-gray-500 hover:text-gray-700" onclick="closeModal('joinNowModal')">
+                        <i class="fas fa-times text-xl"></i>
+                    </button>
+                </div>
+                
+                <form id="joinNowForm">
+                    <div class="form-group">
+                        <label class="form-label">First Name</label>
+                        <input type="text" class="form-input" placeholder="Enter your first name" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Last Name</label>
+                        <input type="text" class="form-input" placeholder="Enter your last name" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Email</label>
+                        <input type="email" class="form-input" placeholder="Enter your email" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Password</label>
+                        <input type="password" class="form-input" placeholder="Create a password" required>
+                    </div>
+                    
+                    <div class="form-group flex items-center">
+                        <input type="checkbox" id="terms" class="form-checkbox" required>
+                        <label for="terms" class="text-gray-700">I agree to the <a href="#" class="text-[#006241] hover:underline">Terms of Use</a> and <a href="#" class="text-[#006241] hover:underline">Privacy Policy</a></label>
+                    </div>
+                    
+                    <button type="submit" class="w-full bg-[#006241] text-white py-3 rounded-full font-medium hover:bg-[#004d34] transition-colors">
+                        Create Account
+                    </button>
+                </form>
+                
+                <div class="mt-6 text-center border-t pt-4">
+                    <p class="text-gray-600">Already have an account?</p>
+                    <button class="mt-2 border border-[#006241] text-[#006241] hover:bg-[#006241] hover:text-white px-4 py-2 rounded-full text-sm font-medium transition-colors" onclick="closeModal('joinNowModal'); openSignInModal();">
+                        Sign In
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Rewards Modal -->
+    <div id="rewardsModal" class="modal">
+        <div class="modal-content">
+            <div class="p-6">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="sora-font text-2xl font-bold text-[#006241]">Starbucks Rewards</h2>
+                    <button class="text-gray-500 hover:text-gray-700" onclick="closeModal('rewardsModal')">
+                        <i class="fas fa-times text-xl"></i>
+                    </button>
+                </div>
+                
+                <div class="bg-[#d4e9e2] p-4 rounded-lg mb-6">
+                    <h3 class="sora-font font-bold text-[#006241] mb-2">Join Starbucks Rewards</h3>
+                    <p class="text-gray-700 mb-4">Earn Stars, get free food and drinks, and enjoy exclusive benefits.</p>
+                    <button class="bg-[#006241] text-white px-4 py-2 rounded-full text-sm font-medium hover:bg-[#004d34] transition-colors" onclick="closeModal('rewardsModal'); openJoinNowModal();">
+                        Join Now
+                    </button>
+                </div>
+                
+                <div class="space-y-4">
+                    <div>
+                        <h4 class="sora-font font-bold text-[#006241] mb-2">How to Earn Stars</h4>
+                        <p class="text-gray-700">Earn 1 Star per $1 spent when you scan your member barcode in the app.</p>
+                    </div>
+                    
+                    <div>
+                        <h4 class="sora-font font-bold text-[#006241] mb-2">How to Redeem Rewards</h4>
+                        <p class="text-gray-700">Redeem your Stars for free drinks, food, and more at participating stores.</p>
+                    </div>
+                    
+                    <div>
+                        <h4 class="sora-font font-bold text-[#006241] mb-2">Member Benefits</h4>
+                        <ul class="list-disc pl-5 text-gray-700">
+                            <li>Free birthday drink</li>
+                            <li>Double Star Days</li>
+                            <li>Early access to new products</li>
+                            <li>Personalized offers</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Order Now Modal -->
+    <div id="orderNowModal" class="modal">
+        <div class="modal-content">
+            <div class="p-6">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="sora-font text-2xl font-bold text-[#006241]">Order Now</h2>
+                    <button class="text-gray-500 hover:text-gray-700" onclick="closeModal('orderNowModal')">
+                        <i class="fas fa-times text-xl"></i>
+                    </button>
+                </div>
+                
+                <div class="text-center mb-6">
+                    <p class="text-gray-700 mb-4">Choose how you'd like to order:</p>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="bg-[#f2f0eb] p-4 rounded-lg text-center cursor-pointer hover:bg-[#d4e9e2] transition-colors" onclick="openMenuModal()">
+                            <i class="fas fa-store text-2xl text-[#006241] mb-2"></i>
+                            <p class="font-medium text-[#006241]">Order for Pickup</p>
+                            <p class="text-sm text-gray-600">Pick up at your nearest store</p>
+                        </div>
+                        
+                        <div class="bg-[#f2f0eb] p-4 rounded-lg text-center cursor-pointer hover:bg-[#d4e9e2] transition-colors" onclick="openMenuModal()">
+                            <i class="fas fa-truck text-2xl text-[#006241] mb-2"></i>
+                            <p class="font-medium text-[#006241]">Order for Delivery</p>
+                            <p class="text-sm text-gray-600">Get it delivered to your door</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="border-t pt-4">
+                    <h3 class="sora-font text-lg font-bold text-[#006241] mb-3">Quick Order</h3>
+                    <div class="space-y-3">
+                        <div class="flex justify-between items-center p-3 bg-white border rounded-lg">
+                            <div>
+                                <h4 class="font-medium">Caramel Macchiato</h4>
+                                <p class="text-sm text-gray-600">Your usual order</p>
+                            </div>
+                            <button class="bg-[#006241] text-white px-3 py-1 rounded-full text-sm" onclick="buyNow('Caramel Macchiato', 4.95)">Order</button>
+                        </div>
+                        <div class="flex justify-between items-center p-3 bg-white border rounded-lg">
+                            <div>
+                                <h4 class="font-medium">Iced Coffee</h4>
+                                <p class="text-sm text-gray-600">Freshly brewed</p>
+                            </div>
+                            <button class="bg-[#006241] text-white px-3 py-1 rounded-full text-sm" onclick="buyNow('Iced Coffee', 3.45)">Order</button>
+                        </div>
+                        <div class="flex justify-between items-center p-3 bg-white border rounded-lg">
+                            <div>
+                                <h4 class="font-medium">Chocolate Chip Cookie</h4>
+                                <p class="text-sm text-gray-600">Freshly baked</p>
+                            </div>
+                            <button class="bg-[#006241] text-white px-3 py-1 rounded-full text-sm" onclick="buyNow('Chocolate Chip Cookie', 2.45)">Order</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Content Modal for About Us, Careers, etc. -->
+    <div id="contentModal" class="modal">
+        <div class="modal-content">
+            <div class="p-6">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 id="contentModalTitle" class="sora-font text-2xl font-bold text-[#006241]"></h2>
+                    <button class="text-gray-500 hover:text-gray-700" onclick="closeModal('contentModal')">
+                        <i class="fas fa-times text-xl"></i>
+                    </button>
+                </div>
+                
+                <div id="contentModalBody" class="text-gray-700">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Gift Cards Modal -->
+    <div id="giftCardsModal" class="modal">
+        <div class="modal-content">
+            <div class="p-6">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="sora-font text-2xl font-bold text-[#006241]">Gift Cards</h2>
+                    <button class="text-gray-500 hover:text-gray-700" onclick="closeModal('giftCardsModal')">
+                        <i class="fas fa-times text-xl"></i>
+                    </button>
+                </div>
+                
+                <div class="text-center mb-6">
+                    <div class="bg-gradient-to-r from-[#006241] to-[#cba258] p-8 rounded-2xl text-white mb-6">
+                        <i class="fas fa-gift text-4xl mb-4"></i>
+                        <h3 class="sora-font text-xl font-bold mb-2">Starbucks Gift Card</h3>
+                        <p>The perfect gift for any coffee lover</p>
+                    </div>
+                    
+                    <div class="grid grid-cols-2 gap-4 mb-6">
+                        <div class="border rounded-lg p-4 text-center">
+                            <p class="font-bold text-[#006241]">$25</p>
+                            <button class="mt-2 bg-[#006241] text-white px-3 py-1 rounded-full text-sm" onclick="buyNow('$25 Gift Card', 25)">Buy</button>
+                        </div>
+                        <div class="border rounded-lg p-4 text-center">
+                            <p class="font-bold text-[#006241]">$50</p>
+                            <button class="mt-2 bg-[#006241] text-white px-3 py-1 rounded-full text-sm" onclick="buyNow('$50 Gift Card', 50)">Buy</button>
+                        </div>
+                    </div>
+                    
+                    <button class="w-full bg-[#006241] text-white py-3 rounded-full font-medium hover:bg-[#004d34] transition-colors" onclick="openCustomGiftCardModal()">
+                        Custom Amount
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Custom Gift Card Modal -->
+    <div id="customGiftCardModal" class="modal">
+        <div class="modal-content">
+            <div class="p-6">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="sora-font text-2xl font-bold text-[#006241]">Custom Gift Card</h2>
+                    <button class="text-gray-500 hover:text-gray-700" onclick="closeModal('customGiftCardModal')">
+                        <i class="fas fa-times text-xl"></i>
+                    </button>
+                </div>
+                
+                <form id="customGiftCardForm">
+                    <div class="form-group">
+                        <label class="form-label">Amount</label>
+                        <input type="number" class="form-input" placeholder="Enter amount" min="5" max="500" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Recipient Name</label>
+                        <input type="text" class="form-input" placeholder="Enter recipient name">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Recipient Email</label>
+                        <input type="email" class="form-input" placeholder="Enter recipient email">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Message</label>
+                        <textarea class="form-input" placeholder="Add a personal message"></textarea>
+                    </div>
+                    
+                    <button type="submit" class="w-full bg-[#006241] text-white py-3 rounded-full font-medium hover:bg-[#004d34] transition-colors">
+                        Add to Cart
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Find Store Modal -->
+    <div id="findStoreModal" class="modal">
+        <div class="modal-content store-details-modal">
+            <div class="p-6">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="sora-font text-2xl font-bold text-[#006241]">Find a Store</h2>
+                    <button class="text-gray-500 hover:text-gray-700" onclick="closeModal('findStoreModal')">
+                        <i class="fas fa-times text-xl"></i>
+                    </button>
+                </div>
+                
+                <div class="mb-4">
+                    <div class="relative">
+                        <input type="text" id="storeSearch" placeholder="Search by city, country, or store name" class="w-full p-3 border rounded-lg pl-10" onkeyup="searchStores()">
+                        <i class="fas fa-search absolute left-3 top-3.5 text-gray-400"></i>
+                    </div>
+                </div>
+                
+                <div id="noResults" class="hidden text-center p-4 bg-gray-100 rounded-lg mb-4">
+                    <p class="text-gray-700">No stores found. Please try a different search term.</p>
+                </div>
+                
+                <div class="world-map-container mb-6" id="worldMap"></div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-96 overflow-y-auto" id="storeList">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Store Details Modal -->
+    <div id="storeDetailsModal" class="modal">
+        <div class="modal-content">
+            <div class="p-6">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 id="storeDetailName" class="sora-font text-2xl font-bold text-[#006241]">Store Details</h2>
+                    <button class="text-gray-500 hover:text-gray-700" onclick="closeModal('storeDetailsModal')">
+                        <i class="fas fa-times text-xl"></i>
+                    </button>
+                </div>
+                
+                <div class="space-y-4">
+                    <div>
+                        <h3 class="sora-font font-bold text-[#006241] mb-2">Address</h3>
+                        <p id="storeDetailAddress" class="text-gray-700"></p>
+                    </div>
+                    
+                    <div>
+                        <h3 class="sora-font font-bold text-[#006241] mb-2">Hours</h3>
+                        <p id="storeDetailHours" class="text-gray-700"></p>
+                    </div>
+                    
+                    <div>
+                        <h3 class="sora-font font-bold text-[#006241] mb-2">Rating</h3>
+                        <div id="storeDetailRating" class="rating-stars"></div>
+                        <p id="storeDetailReviewCount" class="text-gray-700 text-sm mt-1"></p>
+                    </div>
+                    
+                    <div>
+                        <h3 class="sora-font font-bold text-[#006241] mb-2">Amenities</h3>
+                        <div id="storeDetailAmenities" class="flex flex-wrap gap-2"></div>
+                    </div>
+                    
+                    <div>
+                        <h3 class="sora-font font-bold text-[#006241] mb-2">Contact</h3>
+                        <p id="storeDetailPhone" class="text-gray-700"></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Payment Modal -->
+    <div id="paymentModal" class="modal">
+        <div class="modal-content">
+            <div class="p-6">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="sora-font text-2xl font-bold text-[#006241]">Complete Your Order</h2>
+                    <button class="text-gray-500 hover:text-gray-700" onclick="closeModal('paymentModal')">
+                        <i class="fas fa-times text-xl"></i>
+                    </button>
+                </div>
+                
+                <div class="text-center mb-6">
+                    <h3 id="paymentItemName" class="sora-font text-xl font-bold text-[#006241]"></h3>
+                    <p id="paymentItemPrice" class="text-lg text-[#cba258] font-bold"></p>
+                </div>
+                
+                <div class="bg-[#f2f0eb] p-6 rounded-2xl text-center">
+                    <p class="text-gray-700 mb-4">Scan the QR code to complete your payment</p>
+                    <div class="bg-white p-4 rounded-lg inline-block">
+                        <div class="w-64 h-64 bg-gradient-to-r from-[#006241] to-[#cba258] flex items-center justify-center text-white text-2xl font-bold">
+                            <a href="blob:https://web.whatsapp.com/93a523fc-ee71-4808-ba4a-acf608b0be28"></a>
+                            
+                        </div>
+                    </div>
+                    <p class="text-gray-700 mt-4">After payment, you will receive a confirmation</p>
+                </div>
+                
+                <div class="mt-6 text-center">
+                    <button class="bg-[#006241] text-white px-6 py-3 rounded-full font-medium hover:bg-[#004d34] transition-colors" onclick="processPayment()">
+                        I've Completed Payment
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Success Modal -->
+    <div id="successModal" class="modal">
+        <div class="modal-content">
+            <div class="p-6 text-center">
+                <div class="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <i class="fas fa-check text-green-600 text-2xl"></i>
+                </div>
+                
+                <h2 class="sora-font text-2xl font-bold text-[#006241] mb-2">Order Successful!</h2>
+                <p class="text-gray-700 mb-6">Thank you for your order. Your payment has been processed successfully.</p>
+                
+                <button class="bg-[#006241] text-white px-6 py-3 rounded-full font-medium hover:bg-[#004d34] transition-colors" onclick="closeModal('successModal')">
+                    Continue Shopping
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let selectedBaseDrink = 'coffee';
+        let selectedFlavor = 'sweet';
+        let generatedDrink = null;
+        let worldMap = null;
+        let userSignedIn = false;
+        
+        let starbucksLocations = [
+            { name: "Starbucks Connaught Place", lat: 28.6328, lng: 77.2197, country: "India", city: "New Delhi", 
+              address: "F-38, Inner Circle, Connaught Place, New Delhi", hours: "7:00 AM - 11:00 PM", 
+              rating: 4.5, reviewCount: 1287, phone: "+91 11 4151 1234",
+              amenities: ["WiFi", "Drive-Thru", "Outdoor Seating", "Mobile Order"] },
+              
+            { name: "Starbucks Bandra Kurla", lat: 19.0640, lng: 72.8359, country: "India", city: "Mumbai", 
+              address: "Ground Floor, M2M BKC, Bandra Kurla Complex, Mumbai", hours: "6:30 AM - 11:30 PM", 
+              rating: 4.3, reviewCount: 892, phone: "+91 22 2659 8745",
+              amenities: ["WiFi", "Outdoor Seating", "Mobile Order"] },
+              
+            { name: "Starbucks Phoenix Marketcity", lat: 18.5522, lng: 73.9149, country: "India", city: "Pune", 
+              address: "Phoenix Marketcity, Viman Nagar, Pune", hours: "8:00 AM - 11:00 PM", 
+              rating: 4.4, reviewCount: 654, phone: "+91 20 6621 4598",
+              amenities: ["WiFi", "Drive-Thru", "Mobile Order"] },
+              
+            { name: "Starbucks UB City", lat: 12.9716, lng: 77.5946, country: "India", city: "Bengaluru", 
+              address: "UB City, Vittal Mallya Road, Bengaluru", hours: "7:00 AM - 11:00 PM", 
+              rating: 4.6, reviewCount: 1123, phone: "+91 80 4123 9876",
+              amenities: ["WiFi", "Outdoor Seating", "Mobile Order", "Reserve Bar"] },
+              
+            { name: "Starbucks Park Street", lat: 22.5726, lng: 88.3639, country: "India", city: "Kolkata", 
+              address: "1A, Park Street, Kolkata", hours: "7:30 AM - 10:30 PM", 
+              rating: 4.2, reviewCount: 543, phone: "+91 33 2287 6543",
+              amenities: ["WiFi", "Mobile Order"] },
+              
+            { name: "Starbucks Jubilee Hills", lat: 17.4239, lng: 78.4738, country: "India", city: "Hyderabad", 
+              address: "Jubilee Hills, Road No. 36, Hyderabad", hours: "7:00 AM - 11:00 PM", 
+              rating: 4.5, reviewCount: 876, phone: "+91 40 4455 6677",
+              amenities: ["WiFi", "Drive-Thru", "Outdoor Seating", "Mobile Order"] },
+              
+            { name: "Starbucks Express Avenue", lat: 13.0524, lng: 80.2508, country: "India", city: "Chennai", 
+              address: "Express Avenue Mall, Royapettah, Chennai", hours: "8:00 AM - 11:00 PM", 
+              rating: 4.3, reviewCount: 765, phone: "+91 44 2845 1234",
+              amenities: ["WiFi", "Mobile Order"] },
+              
+            { name: "Starbucks Sector 17", lat: 30.7333, lng: 76.7794, country: "India", city: "Chandigarh", 
+              address: "Sector 17, Chandigarh", hours: "7:30 AM - 10:30 PM", 
+              rating: 4.4, reviewCount: 432, phone: "+91 172 506 7890",
+              amenities: ["WiFi", "Outdoor Seating", "Mobile Order"] },
+              
+            { name: "Starbucks Vaishali Nagar", lat: 26.9124, lng: 75.7873, country: "India", city: "Jaipur", 
+              address: "Vaishali Nagar, Jaipur", hours: "7:00 AM - 11:00 PM", 
+              rating: 4.2, reviewCount: 321, phone: "+91 141 4123 456",
+              amenities: ["WiFi", "Drive-Thru", "Mobile Order"] },
+              
+            { name: "Starbucks Ashok Rajpath", lat: 25.5941, lng: 85.1376, country: "India", city: "Patna", 
+              address: "Ashok Rajpath, Patna", hours: "7:30 AM - 10:30 PM", 
+              rating: 4.1, reviewCount: 234, phone: "+91 612 254 6789",
+              amenities: ["WiFi", "Mobile Order"] },
+
+            { name: "Starbucks Times Square", lat: 40.7580, lng: -73.9855, country: "USA", city: "New York", 
+              address: "1600 Broadway, New York, NY 10019", hours: "24 Hours", 
+              rating: 4.0, reviewCount: 4321, phone: "+1 212-398-1980",
+              amenities: ["WiFi", "Mobile Order", "Reserve Bar"] },
+              
+            { name: "Starbucks Shibuya Crossing", lat: 35.6595, lng: 139.7004, country: "Japan", city: "Tokyo", 
+              address: "Shibuya Crossing, Tokyo", hours: "5:00 AM - 1:00 AM", 
+              rating: 4.7, reviewCount: 2987, phone: "+81 3-6418-5100",
+              amenities: ["WiFi", "Mobile Order", "Reserve Bar"] },
+              
+            { name: "Starbucks Champs-Élysées", lat: 48.8738, lng: 2.2950, country: "France", city: "Paris", 
+              address: "88 Av. des Champs-Élysées, Paris", hours: "7:00 AM - 11:00 PM", 
+              rating: 4.3, reviewCount: 1876, phone: "+33 1 42 25 63 78",
+              amenities: ["WiFi", "Outdoor Seating", "Mobile Order"] },
+              
+            { name: "Starbucks Sydney Opera", lat: -33.8568, lng: 151.2153, country: "Australia", city: "Sydney", 
+              address: "5 Circular Quay, Sydney", hours: "6:00 AM - 10:00 PM", 
+              rating: 4.5, reviewCount: 1543, phone: "+61 2 9250 7111",
+              amenities: ["WiFi", "Outdoor Seating", "Mobile Order"] },
+              
+            { name: "Starbucks London Eye", lat: 51.5033, lng: -0.1195, country: "UK", city: "London", 
+              address: "Riverside Building, County Hall, London", hours: "6:30 AM - 10:30 PM", 
+              rating: 4.2, reviewCount: 2109, phone: "+44 20 7928 8932",
+              amenities: ["WiFi", "Outdoor Seating", "Mobile Order"] },
+              
+            { name: "Starbucks Dubai Mall", lat: 25.2048, lng: 55.2708, country: "UAE", city: "Dubai", 
+              address: "The Dubai Mall, Downtown Dubai", hours: "8:00 AM - 12:00 AM", 
+              rating: 4.4, reviewCount: 1876, phone: "+971 4 339 8934",
+              amenities: ["WiFi", "Mobile Order", "Reserve Bar"] },
+              
+            { name: "Starbucks CN Tower", lat: 43.6426, lng: -79.3871, country: "Canada", city: "Toronto", 
+              address: "301 Front St W, Toronto", hours: "6:00 AM - 10:00 PM", 
+              rating: 4.3, reviewCount: 1321, phone: "+1 416-868-6937",
+              amenities: ["WiFi", "Mobile Order"] },
+              
+            { name: "Starbucks Berlin Alexanderplatz", lat: 52.5219, lng: 13.4132, country: "Germany", city: "Berlin", 
+              address: "Alexanderplatz, Berlin", hours: "6:30 AM - 10:00 PM", 
+              rating: 4.1, reviewCount: 987, phone: "+49 30 2408 7954",
+              amenities: ["WiFi", "Outdoor Seating", "Mobile Order"] },
+              
+            { name: "Starbucks Singapore Orchard", lat: 1.3048, lng: 103.8318, country: "Singapore", city: "Singapore", 
+              address: "Orchard Road, Singapore", hours: "7:00 AM - 11:00 PM", 
+              rating: 4.6, reviewCount: 1765, phone: "+65 6735 1228",
+              amenities: ["WiFi", "Mobile Order", "Reserve Bar"] },
+              
+            { name: "Starbucks Seoul Myeongdong", lat: 37.5630, lng: 126.9820, country: "South Korea", city: "Seoul", 
+              address: "Myeongdong-gil, Seoul", hours: "7:00 AM - 11:00 PM", 
+              rating: 4.5, reviewCount: 1987, phone: "+82 2-778-0150",
+              amenities: ["WiFi", "Mobile Order"] },
+              
+            { name: "Starbucks Bangkok Siam", lat: 13.7462, lng: 100.5347, country: "Thailand", city: "Bangkok", 
+              address: "Siam Paragon, Bangkok", hours: "8:00 AM - 10:00 PM", 
+              rating: 4.4, reviewCount: 1432, phone: "+66 2 129 4632",
+              amenities: ["WiFi", "Mobile Order"] },
+              
+            { name: "Starbucks Hong Kong Central", lat: 22.2823, lng: 114.1583, country: "Hong Kong", city: "Hong Kong", 
+              address: "IFC Mall, Central, Hong Kong", hours: "7:00 AM - 11:00 PM", 
+              rating: 4.3, reviewCount: 1654, phone: "+852 2295 3308",
+              amenities: ["WiFi", "Mobile Order", "Reserve Bar"] },
+              
+            { name: "Starbucks Shanghai Bund", lat: 31.2397, lng: 121.4993, country: "China", city: "Shanghai", 
+              address: "The Bund, Shanghai", hours: "7:00 AM - 11:00 PM", 
+              rating: 4.5, reviewCount: 1876, phone: "+86 21 6323 9587",
+              amenities: ["WiFi", "Outdoor Seating", "Mobile Order"] },
+              
+            { name: "Starbucks Milan Duomo", lat: 45.4642, lng: 9.1900, country: "Italy", city: "Milan", 
+              address: "Piazza del Duomo, Milan", hours: "7:30 AM - 10:30 PM", 
+              rating: 4.4, reviewCount: 1321, phone: "+39 02 874 863",
+              amenities: ["WiFi", "Outdoor Seating", "Mobile Order"] },
+              
+            { name: "Starbucks Madrid Plaza Mayor", lat: 40.4154, lng: -3.7074, country: "Spain", city: "Madrid", 
+              address: "Plaza Mayor, Madrid", hours: "7:00 AM - 11:00 PM", 
+              rating: 4.2, reviewCount: 1098, phone: "+34 915 48 76 54",
+              amenities: ["WiFi", "Outdoor Seating", "Mobile Order"] }
+        ];
+
+        function openMenuModal() {
+            document.getElementById('menuModal').style.display = 'flex';
+        }
+
+        function openSignInModal() {
+            document.getElementById('signInModal').style.display = 'flex';
+        }
+
+        function openJoinNowModal() {
+            document.getElementById('joinNowModal').style.display = 'flex';
+        }
+
+        function openRewardsModal() {
+            document.getElementById('rewardsModal').style.display = 'flex';
+        }
+
+        function openOrderNowModal() {
+            document.getElementById('orderNowModal').style.display = 'flex';
+        }
+
+        function openGiftCardsModal() {
+            document.getElementById('giftCardsModal').style.display = 'flex';
+        }
+
+        function openCustomGiftCardModal() {
+            closeModal('giftCardsModal');
+            document.getElementById('customGiftCardModal').style.display = 'flex';
+        }
+
+        function openFindStoreModal() {
+            document.getElementById('findStoreModal').style.display = 'flex';
+            setTimeout(initWorldMap, 100);
+            renderStoreList();
+        }
+
+        function openStoreDetailsModal(store) {
+            document.getElementById('storeDetailName').textContent = store.name;
+            document.getElementById('storeDetailAddress').textContent = store.address;
+            document.getElementById('storeDetailHours').textContent = store.hours;
+            document.getElementById('storeDetailPhone').textContent = store.phone;
+            
+            const ratingElement = document.getElementById('storeDetailRating');
+            ratingElement.innerHTML = '';
+            const fullStars = Math.floor(store.rating);
+            const hasHalfStar = store.rating % 1 >= 0.5;
+            
+            for (let i = 0; i < fullStars; i++) {
+                ratingElement.innerHTML += '<i class="fas fa-star"></i> ';
+            }
+            
+            if (hasHalfStar) {
+                ratingElement.innerHTML += '<i class="fas fa-star-half-alt"></i> ';
+            }
+            
+            const emptyStars = 5 - fullStars - (hasHalfStar ? 1 : 0);
+            for (let i = 0; i < emptyStars; i++) {
+                ratingElement.innerHTML += '<i class="far fa-star"></i> ';
+            }
+            
+            document.getElementById('storeDetailReviewCount').textContent = `${store.rating} stars (${store.reviewCount} reviews)`;
+            
+            const amenitiesElement = document.getElementById('storeDetailAmenities');
+            amenitiesElement.innerHTML = '';
+            store.amenities.forEach(amenity => {
+                amenitiesElement.innerHTML += `<span class="bg-[#d4e9e2] text-[#006241] px-2 py-1 rounded-full text-xs">${amenity}</span>`;
+            });
+            
+            document.getElementById('storeDetailsModal').style.display = 'flex';
+        }
+
+        function buyNow(itemName, price) {
+            document.getElementById('paymentItemName').textContent = itemName;
+            document.getElementById('paymentItemPrice').textContent = `$${price.toFixed(2)}`;
+            closeAllModals();
+            document.getElementById('paymentModal').style.display = 'flex';
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).style.display = 'none';
+        }
+
+        function closeAllModals() {
+            const modals = document.querySelectorAll('.modal');
+            modals.forEach(modal => {
+                modal.style.display = 'none';
+            });
+        }
+
+        function searchStores() {
+            const searchTerm = document.getElementById('storeSearch').value.toLowerCase();
+            const storeList = document.getElementById('storeList');
+            const noResults = document.getElementById('noResults');
+            
+            const filteredStores = starbucksLocations.filter(store => 
+                store.name.toLowerCase().includes(searchTerm) ||
+                store.city.toLowerCase().includes(searchTerm) ||
+                store.country.toLowerCase().includes(searchTerm) ||
+                store.address.toLowerCase().includes(searchTerm)
+            );
+            
+            if (filteredStores.length === 0) {
+                noResults.classList.remove('hidden');
+                storeList.innerHTML = '';
+            } else {
+                noResults.classList.add('hidden');
+                renderStoreList(filteredStores);
+            }
+            
+            updateWorldMapMarkers(filteredStores);
+        }
+
+        function renderStoreList(stores = starbucksLocations) {
+            const storeList = document.getElementById('storeList');
+            storeList.innerHTML = '';
+            
+            stores.forEach(store => {
+                const storeElement = document.createElement('div');
+                storeElement.className = 'store-card border rounded-lg p-4';
+                
+                let ratingStars = '';
+                const fullStars = Math.floor(store.rating);
+                const hasHalfStar = store.rating % 1 >= 0.5;
+                
+                for (let i = 0; i < fullStars; i++) {
+                    ratingStars += '<i class="fas fa-star"></i>';
+                }
+                
+                if (hasHalfStar) {
+                    ratingStars += '<i class="fas fa-star-half-alt"></i>';
+                }
+                
+                const emptyStars = 5 - fullStars - (hasHalfStar ? 1 : 0);
+                for (let i = 0; i < emptyStars; i++) {
+                    ratingStars += '<i class="far fa-star"></i>';
+                }
+                
+                storeElement.innerHTML = `
+                    <div class="flex justify-between items-start mb-2">
+                        <h4 class="sora-font font-bold text-[#006241]">${store.name}</h4>
+                        <span class="text-sm bg-[#006241] text-white px-2 py-1 rounded-full">${store.country}</span>
+                    </div>
+                    <p class="text-gray-700 text-sm mb-2">${store.city}, ${store.country}</p>
+                    <div class="rating-stars mb-2">
+                        ${ratingStars} <span class="text-gray-600 text-sm ml-1">${store.rating}</span>
+                    </div>
+                    <div class="flex flex-wrap gap-1 mb-3">
+                        ${store.amenities.slice(0, 3).map(amenity => 
+                            `<span class="bg-gray-100 text-gray-700 px-2 py-1 rounded-full text-xs">${amenity}</span>`
+                        ).join('')}
+                        ${store.amenities.length > 3 ? 
+                            `<span class="bg-gray-100 text-gray-700 px-2 py-1 rounded-full text-xs">+${store.amenities.length - 3} more</span>` : ''}
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-sm text-gray-500">${store.hours.split(' - ')[0]}</span>
+                        <button class="bg-[#006241] text-white px-3 py-1 rounded-full text-sm" onclick="openStoreDetailsModal(${JSON.stringify(store).replace(/"/g, '&quot;')})">
+                            Details
+                        </button>
+                    </div>
+                `;
+                
+                storeElement.addEventListener('click', (e) => {
+                    if (!e.target.closest('button')) {
+                        selectStore(store);
+                    }
+                });
+                
+                storeList.appendChild(storeElement);
+            });
+        }
+
+        function initWorldMap() {
+            if (worldMap) {
+                worldMap.remove();
+            }
+            
+            worldMap = L.map('worldMap').setView([20, 0], 2);
+            
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors'
+            }).addTo(worldMap);
+            
+            updateWorldMapMarkers();
+        }
+
+        function updateWorldMapMarkers(stores = starbucksLocations) {
+            if (!worldMap) return;
+            
+            worldMap.eachLayer(layer => {
+                if (layer instanceof L.Marker) {
+                    worldMap.removeLayer(layer);
+                }
+            });
+            
+            stores.forEach(store => {
+                const rating = store.rating;
+                let color = '#006241';
+                
+                if (rating >= 4.5) color = '#cba258';
+                else if (rating >= 4.0) color = '#006241';
+                else if (rating >= 3.5) color = '#FFA500';
+                else color = '#FF0000';
+                
+                const customIcon = L.divIcon({
+                    html: `<div style="background-color: ${color}; width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 10px;">${rating}</div>`,
+                    className: 'custom-marker',
+                    iconSize: [20, 20],
+                    iconAnchor: [10, 10]
+                });
+                
+                const marker = L.marker([store.lat, store.lng], {icon: customIcon}).addTo(worldMap)
+                    .bindPopup(`
+                        <div class="p-2">
+                            <h3 class="font-bold text-[#006241]">${store.name}</h3>
+                            <p class="text-sm">${store.city}, ${store.country}</p>
+                            <div class="rating-stars mt-1">
+                                ${Array(5).fill(0).map((_, i) => 
+                                    i < Math.floor(store.rating) ? 
+                                    '<i class="fas fa-star"></i>' : 
+                                    (i === Math.floor(store.rating) && store.rating % 1 >= 0.5) ?
+                                    '<i class="fas fa-star-half-alt"></i>' :
+                                    '<i class="far fa-star"></i>'
+                                ).join('')}
+                                <span class="ml-1">${store.rating}</span>
+                            </div>
+                            <button class="mt-2 bg-[#006241] text-white px-2 py-1 rounded text-xs" onclick="openStoreDetailsModal(${JSON.stringify(store).replace(/"/g, '&quot;')})">
+                                View Details
+                            </button>
+                        </div>
+                    `);
+                
+                marker.on('click', () => {
+                    worldMap.setView([store.lat, store.lng], 10);
+                });
+            });
+            
+            if (stores.length > 0) {
+                const group = new L.featureGroup(stores.map(store => L.marker([store.lat, store.lng])));
+                worldMap.fitBounds(group.getBounds().pad(0.1));
+            }
+        }
+
+        function selectStore(store) {
+            if (worldMap) {
+                worldMap.setView([store.lat, store.lng], 12);
+                worldMap.eachLayer(layer => {
+                    if (layer instanceof L.Marker && 
+                        layer.getLatLng().lat === store.lat && 
+                        layer.getLatLng().lng === store.lng) {
+                        layer.openPopup();
+                    }
+                });
+            }
+        }
+
+        function selectBaseDrink(type) {
+            selectedBaseDrink = type;
+            
+            document.getElementById('coffeeBtn').classList.remove('bg-[#006241]', 'text-white');
+            document.getElementById('teaBtn').classList.remove('bg-[#006241]', 'text-white');
+            document.getElementById('frappeBtn').classList.remove('bg-[#006241]', 'text-white');
+            
+            document.getElementById('coffeeBtn').classList.add('bg-white', 'border', 'border-[#006241]', 'text-[#006241]');
+            document.getElementById('teaBtn').classList.add('bg-white', 'border', 'border-[#006241]', 'text-[#006241]');
+            document.getElementById('frappeBtn').classList.add('bg-white', 'border', 'border-[#006241]', 'text-[#006241]');
+            
+            document.getElementById(`${type}Btn`).classList.remove('bg-white', 'border', 'border-[#006241]', 'text-[#006241]');
+            document.getElementById(`${type}Btn`).classList.add('bg-[#006241]', 'text-white');
+        }
+
+        function selectFlavor(flavor) {
+            selectedFlavor = flavor;
+            
+            document.getElementById('sweetBtn').classList.remove('bg-[#006241]', 'text-white');
+            document.getElementById('boldBtn').classList.remove('bg-[#006241]', 'text-white');
+            document.getElementById('creamyBtn').classList.remove('bg-[#006241]', 'text-white');
+            document.getElementById('refreshingBtn').classList.remove('bg-[#006241]', 'text-white');
+            
+            document.getElementById('sweetBtn').classList.add('bg-white', 'border', 'border-[#006241]', 'text-[#006241]');
+            document.getElementById('boldBtn').classList.add('bg-white', 'border', 'border-[#006241]', 'text-[#006241]');
+            document.getElementById('creamyBtn').classList.add('bg-white', 'border', 'border-[#006241]', 'text-[#006241]');
+            document.getElementById('refreshingBtn').classList.add('bg-white', 'border', 'border-[#006241]', 'text-[#006241]');
+            
+            document.getElementById(`${flavor}Btn`).classList.remove('bg-white', 'border', 'border-[#006241]', 'text-[#006241]');
+            document.getElementById(`${flavor}Btn`).classList.add('bg-[#006241]', 'text-white');
+        }
+
+        function generateDrink() {
+            const drinks = {
+                coffee: {
+                    sweet: { name: 'Caramel Vanilla Latte', price: 5.75, color: 'from-[#cba258] to-[#e0c78a]' },
+                    bold: { name: 'Double Shot Espresso Con Panna', price: 4.95, color: 'from-[#8b4513] to-[#5d2f0f]' },
+                    creamy: { name: 'Hazelnut Cream Cold Brew', price: 5.45, color: 'from-[#a67c52] to-[#8b6b3d]' },
+                    refreshing: { name: 'Iced Brown Sugar Oat Shaken Espresso', price: 5.25, color: 'from-[#a67c52] to-[#8b6b3d]' }
+                },
+                tea: {
+                    sweet: { name: 'Peach Green Tea Lemonade', price: 4.75, color: 'from-[#d4e9e2] to-[#a8d5ba]' },
+                    bold: { name: 'Chai Tea Latte', price: 4.95, color: 'from-[#a67c52] to-[#8b6b3d]' },
+                    creamy: { name: 'London Fog Tea Latte', price: 4.85, color: 'from-[#d4e9e2] to-[#a8d5ba]' },
+                    refreshing: { name: 'Iced Passion Tango Tea', price: 4.25, color: 'from-[#e2a8b6] to-[#d47a8f]' }
+                },
+                frappe: {
+                    sweet: { name: 'Mocha Cookie Crumble Frappuccino', price: 5.95, color: 'from-[#8b4513] to-[#5d2f0f]' },
+                    bold: { name: 'Espresso Frappuccino', price: 5.25, color: 'from-[#8b4513] to-[#5d2f0f]' },
+                    creamy: { name: 'Vanilla Bean Crème Frappuccino', price: 5.45, color: 'from-[#f2f0eb] to-[#d4e9e2]' },
+                    refreshing: { name: 'Strawberry Frappuccino', price: 5.35, color: 'from-[#e2a8b6] to-[#d47a8f]' }
+                }
+            };
+            
+            generatedDrink = drinks[selectedBaseDrink][selectedFlavor];
+            
+            const display = document.getElementById('aiDrinkDisplay');
+            display.className = `w-80 h-80 bg-gradient-to-br ${generatedDrink.color} rounded-full flex items-center justify-center floating-animation`;
+            
+            display.innerHTML = `
+                <div class="w-64 h-64 bg-white rounded-full flex items-center justify-center">
+                    <div class="text-center">
+                        <i class="fas fa-mug-hot text-4xl text-[#006241] mb-4"></i>
+                        <h3 class="sora-font text-xl font-bold text-[#006241]">${generatedDrink.name}</h3>
+                        <p class="text-gray-600">$${generatedDrink.price.toFixed(2)}</p>
+                        <button class="mt-2 bg-[#006241] text-white px-4 py-1 rounded-full text-sm" onclick="buyNow('${generatedDrink.name}', ${generatedDrink.price})">Buy Now</button>
+                    </div>
+                </div>
+            `;
+        }
+
+        function processPayment() {
+            closeModal('paymentModal');
+            document.getElementById('successModal').style.display = 'flex';
+        }
+
+        function toggleMobileMenu() {
+            const mobileMenu = document.getElementById('mobileMenu');
+            mobileMenu.classList.toggle('hidden');
+        }
+
+        function changeMenuTab(tabName) {
+            const tabs = document.querySelectorAll('.tab');
+            tabs.forEach(tab => tab.classList.remove('active'));
+            
+            const categories = document.querySelectorAll('.menu-category');
+            categories.forEach(category => category.classList.remove('active'));
+            
+            event.target.classList.add('active');
+            document.getElementById(tabName).classList.add('active');
+        }
+
+        function showContentModal(title, content) {
+            document.getElementById('contentModalTitle').textContent = title;
+            document.getElementById('contentModalBody').textContent = content;
+            document.getElementById('contentModal').style.display = 'flex';
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            selectBaseDrink('coffee');
+            selectFlavor('sweet');
+            
+            const modals = document.querySelectorAll('.modal');
+            modals.forEach(modal => {
+                modal.addEventListener('click', function(e) {
+                    if (e.target === this) {
+                        this.style.display = 'none';
+                    }
+                });
+            });
+            
+            const signInForm = document.getElementById('signInForm');
+            signInForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                closeModal('signInModal');
+                userSignedIn = true;
+                document.getElementById('signInBtn').textContent = 'My Account';
+                document.getElementById('successModal').style.display = 'flex';
+            });
+            
+            const joinNowForm = document.getElementById('joinNowForm');
+            joinNowForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                closeModal('joinNowModal');
+                userSignedIn = true;
+                document.getElementById('signInBtn').textContent = 'My Account';
+                document.getElementById('successModal').style.display = 'flex';
+            });
+            
+            const customGiftCardForm = document.getElementById('customGiftCardForm');
+            customGiftCardForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                closeModal('customGiftCardModal');
+                const amount = document.querySelector('#customGiftCardForm input[type="number"]').value;
+                buyNow(`Custom Gift Card ($${amount})`, parseFloat(amount));
+            });
+        });
+    </script>
+</body>
+</html>
